@@ -1,0 +1,54 @@
+---
+Resources:
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0c802847a7dd848c0
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - !GetAtt ServerSecurityGroup.GroupId
+      KeyName: !Ref MyKeyPair
+      SubnetId: subnet-0a51ed7b1a97312a3 # NEED TO CHANGE
+      UserData: 
+        Fn::Base64: |
+          #!/bin/bash
+          # Use this for your user data (script from top to bottom)
+          # install httpd (Linux 2 version)
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
+
+  # an elastic IP for our instance
+  MyEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref MyInstance
+
+  # our EC2 security group
+  ServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access via port 22 and 80
+      GroupName: aws-ccp-cloudformation-ec2-sg
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0 # NEED TO CHANGE
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0 # NEED TO CHANGE
+  
+  # key-pair  
+  MyKeyPair:    
+    Type: AWS::EC2::KeyPair
+    Properties: 
+      KeyName: aws-ccp-cfm-key-pair
+
+Outputs:
+  ElasticIP:
+    Description: Elastic IP Value
+    Value: !Ref MyEIP
